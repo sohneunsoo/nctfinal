@@ -98,7 +98,7 @@ class DialogueSimulator:
 
         # 4. increment time
             self._step += 1
-            print(self.agents[0].message_history)    
+            print(self.agents[0].message_history)   
             return speaker.name, message
             
             
