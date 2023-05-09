@@ -78,9 +78,10 @@ class DialogueSimulator:
 
             for receiver in self.agents:
                 receiver.receive(name, message)
-
             self._step += 1
             print('user talks')
+            print(self.agents[0].message_history)
+
             return name, message
         
         else:
@@ -96,9 +97,13 @@ class DialogueSimulator:
                 receiver.receive(speaker.name, message)
 
         # 4. increment time
-                self._step += 1
-                
-                return speaker.name, message
+            self._step += 1
+            print(self.agents[0].message_history)    
+            return speaker.name, message
+            
+            
+    # def return_firstagenthist(self):
+    #     return str(self.agents[0].message_history)
             
 
 class BiddingDialogueAgent(DialogueAgent):

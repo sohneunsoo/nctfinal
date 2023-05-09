@@ -36,16 +36,23 @@ culprit = None
 #     st.session_state.talk_history.append(f'\n{name} \:'.upper()+ f' {message}')
     
 
-if 'user_text' not in st.session_state:
-    st.session_state.user_text = 'hello'
+# if 'user_text' not in st.session_state:
+st.session_state.user_text = ''
 def submit_user_text():
-    st.session_state.user_text = userprompt
-    st.session_state.user_text_widget = ''
+    st.session_state.user_text = st.session_state.user_text_widget
     simulator = st.session_state.get('simulator')
     name, message = simulator.step([username,st.session_state.user_text])
     st.session_state['simulator'] = simulator
     st.session_state.talk_history.append(f'\n{name} \:'.upper()+ f' {message}')
-    st.write('test')
+    st.session_state.user_text = ''
+    st.session_state.user_text_widget = ''
+
+
+# name = st.text_input('Name')
+# if not name:
+#   st.warning('Please input a name.')
+#   st.stop()
+# st.success('Thank you for inputting a name.')
     
 
 
@@ -73,8 +80,11 @@ userprompt = st.text_input("engage in conv",key='user_text_widget',on_change=sub
 
 next_but = st.button('Next')
 
-
+stop_but = st.button('stop')
 #BUTTON/INPUT
+
+if stop_but:
+    st.stop()
 
 
 if initialize_but:
@@ -99,7 +109,10 @@ if next_but:
     name, message = simulator.step([username,st.session_state.user_text])
     st.session_state['simulator'] = simulator
     st.session_state.talk_history.append(f'\n{name} \:'.upper()+ f' {message}')
+    # st.write(simulator.return_firstagenthist())
     st.experimental_rerun()
+    
+    
     # st.session_state.user_text = ''
     # with placeholder:
     #     st.write('\n'.join(st.session_state.talk_history))
