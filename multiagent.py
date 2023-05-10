@@ -216,14 +216,15 @@ Do not add anything else.
     """
     ))
 
-def generate_evidences(game_description,character_relationships):
+def generate_evidences(game_description,character_relationships,culprit):
     evidence_prompt = [
         SystemMessage(
         content="You can add detail to the description."),
         HumanMessage(content=
             f"""{game_description}
             Relationships: {character_relationships}
-            Please reply with a creative description of possible physical and non-physical evidences of the case. It must make all suspects suspicious.
+            The culprit is {culprit}.
+            Please reply with a creative description of possible physical and non-physical evidences of the case in {word_limit} or less. It must make all suspects suspicious. Do not reveal the culprit. 
             Do not add anything else."""
             )
     ]
@@ -247,7 +248,7 @@ def generate_character_bidding_template(character_header):
 {{message_history}}
 ```
 
-On the scale of 1 to 10, where 1 is not necessary and 10 is extremely necessary, from the following message rate how necessary for you to speak up to is to clear your suspicion of murder.
+On the scale of 1 to 10, where 1 is not necessary and 10 is extremely necessary, from the following message rate how necessary for you to speak up to is to clear your suspicion of murder. Give higher number if your name is mentioned by the previous speaker. Give lower number if previous speaker is yourself.
 
 ```
 {{recent_message}}
@@ -322,10 +323,11 @@ The suspects are: {', '.join(character_names)}. One of them is a culprit"""
         'game_description':game_description,
         'character_bidding_templates': character_bidding_templates,
         'character_system_messages': character_system_messages,
-        'character_relationships': character_relationships
+        'character_relationships': character_relationships,
+        'culprit':culprit
     }
     
-    return culprit,character_set
+    return character_set
 
 
 def run_pipeline(character_names,dead,character_set):
@@ -333,8 +335,9 @@ def run_pipeline(character_names,dead,character_set):
     character_bidding_templates = character_set['character_bidding_templates']
     character_system_messages = character_set['character_system_messages']
     character_relationships = character_set['character_relationships']
+    culprit = character_set['culprit']
 
-    evidences = generate_evidences(game_description,character_relationships)
+    evidences = generate_evidences(game_description,character_relationships,culprit)
 
     detective_header = f"""{game_description}.
     You are Detective trying to investigate on the case.
