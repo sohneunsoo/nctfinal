@@ -5,7 +5,7 @@ from langchain.llms import OpenAI
 from multiagent import *
 import random
 import config
-
+from googletrans import Translator
 
 # os.environ["HUGGINGFACEHUB_API_TOKEN"] = 
 # os.environ['OPENAI_API_KEY'] = 
@@ -18,6 +18,13 @@ os.environ["OPENAI_API_KEY"] = config.openaiapihaea
 
 
 #FUNCTIONS/STATES
+translator = Translator()
+def trans(textinput):
+    return translator.translate(textinput,src='en',dest='ko').text
+    
+def transtoeng(textinput):
+    return translator.translate(textinput,dest='en').text
+
 
 if 'chara' not in st.session_state:
     st.session_state.chara = []
@@ -26,7 +33,7 @@ def submitchara():
     st.session_state.chara_widget = ''
 
 if 'talk_history' not in st.session_state:
-    st.session_state.talk_history = []
+    st.session_state.talk_history = [[],[]]
 simulator = None
 culprit = None
 
@@ -36,14 +43,18 @@ culprit = None
 #     st.session_state.talk_history.append(f'\n{name} \:'.upper()+ f' {message}')
     
 
-# if 'user_text' not in st.session_state:
-st.session_state.user_text = ''
-def submit_user_text():
-    st.session_state.user_text = st.session_state.user_text_widget
+def produce_next_conv():
     simulator = st.session_state.get('simulator')
     name, message = simulator.step([username,st.session_state.user_text])
     st.session_state['simulator'] = simulator
-    st.session_state.talk_history.append(f'\n{name} \:'.upper()+ f' {message}')
+    st.session_state.talk_history[0].append(f'\n{name} \:'.upper()+ trans(f' {message}'))
+    st.session_state.talk_history[1].append(f'\n{name} \:'.upper()+ f' {message}')
+
+# if 'user_text' not in st.session_state:
+st.session_state.user_text = ''
+def submit_user_text():
+    st.session_state.user_text = transtoeng(st.session_state.user_text_widget)
+    produce_next_conv()
     st.session_state.user_text = ''
     st.session_state.user_text_widget = ''
 
@@ -62,6 +73,8 @@ def submit_user_text():
 
 ##PAGE LAYOUT
 st.title("It's open")
+transko = st.checkbox('Translate/번역',key='trans_widget')
+
 dead = st.text_input('Dead chara name')
 if dead:
     st.write(f'You have chosen {dead} to be dead.')
@@ -74,7 +87,10 @@ initialize_but = st.button('Initialize')
 
 start_but = st.button('Start/Reset_conv')
 
-st.write('\n'.join(st.session_state.talk_history))
+if transko:
+    st.write('\n'.join(st.session_state.talk_history[0]))
+else:
+    st.write('\n'.join(st.session_state.talk_history[1]))
 
 username = st.text_input("Your name")
 
@@ -83,6 +99,9 @@ userprompt = st.text_input("engage in conv",key='user_text_widget',on_change=sub
 next_but = st.button('Next')
 
 stop_but = st.button('stop')
+
+guess_but = st.button('Guess')
+
 #BUTTON/INPUT
 
 if stop_but:
@@ -90,7 +109,6 @@ if stop_but:
 
 
 if initialize_but:
-
     culprit, character_set = set_pipeline(st.session_state.chara,dead)
     st.session_state['simulators'] = []
     st.session_state['cur_id'] = 0
@@ -99,18 +117,17 @@ if initialize_but:
     st.session_state['cur_id'] += 1
 
 if start_but:
-    st.session_state.talk_history = []
-    simulator, specified_topic = run_pipeline(st.session_state.chara,dead,st.session_state.simulators[0])
+    st.session_state.talk_history = [[],[]]
+    simulator, specified_topic, evidences = run_pipeline(st.session_state.chara,dead,st.session_state.simulators[0])
     st.session_state['simulator'] = simulator
-    st.session_state.talk_history.append('Detective: '.upper()+specified_topic)
+    st.session_state.talk_history[0].append('Detective: '.upper()+trans(specified_topic)+trans(f'\nEvidences (only the detective knows this):{evidences}'))
+    st.session_state.talk_history[1].append('Detective: '.upper()+specified_topic+f'\nEvidences (only the detective knows this):{evidences}')
+
     st.experimental_rerun()   
     # st.write('Detective: '+specified_topic)
 
 if next_but:
-    simulator = st.session_state.get('simulator')
-    name, message = simulator.step([username,st.session_state.user_text])
-    st.session_state['simulator'] = simulator
-    st.session_state.talk_history.append(f'\n{name} \:'.upper()+ f' {message}')
+    produce_next_conv()
     # st.write(simulator.return_firstagenthist())
     st.experimental_rerun()
     
@@ -121,6 +138,10 @@ if next_but:
 if userprompt:
 
     st.experimental_rerun()
+
+if guess_but:
+    simulator = st.session_state.get('simulator')
+    st.write('Characters have voted the culprit to be...\n',simulator.final_call(st.session_state.chara))
 
 
 # def submit_user_text():

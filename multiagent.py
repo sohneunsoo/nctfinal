@@ -101,6 +101,25 @@ class DialogueSimulator:
             print(self.agents[0].message_history)   
             return speaker.name, message
             
+    def final_call(self,character_names,n=0):
+        vote = {agent.name:0  for agent in self.agents}
+        for agent in self.agents: #detective need to vote too. ya he is part of the agent list
+            message = agent.model([SystemMessage(content="\n".join(agent.message_history + [f'From {character_names}, except yourself, name the person you would name as culprit.'] +[f"\nYour response should be one of {character_names}, delimited by double angled brackets, like this: <<str>>\nDo nothing else."]))]).content
+            votename = re.findall(r'<<(.*)>>',message)[0].strip()
+            if votename not in vote.keys():
+                continue
+            else:
+                vote[votename] +=1
+        
+        voted = sorted(vote.items(), key=lambda x:x[1], reverse=True)
+        
+        print(vote)
+        if voted[0][1] == voted[1][1] and n <3:
+            print('Try vote again')
+            return self.final_call(n+1)
+        else:
+            return voted[0][0]
+            # print(vote_parser.parse(message.content))
             
     # def return_firstagenthist(self):
     #     return str(self.agents[0].message_history)
@@ -187,7 +206,7 @@ You will come up with creative ideas related to {topic}.
 Try your best to show you are innocent while raising suspicion of other suspects.
 Do not say the same things over and over again.
 Speak in the first person from the perspective of {character_name}
-For describing your own body movements, wrap your description in '*'.
+For describing your own body movements, wrap your description in '|*|'.
 Do not change roles!
 Do not speak from the perspective of anyone else.
 Speak only from the perspective of {character_name}.
@@ -197,6 +216,19 @@ Do not add anything else.
     """
     ))
 
+def generate_evidences(game_description,character_relationships):
+    evidence_prompt = [
+        SystemMessage(
+        content="You can add detail to the description."),
+        HumanMessage(content=
+            f"""{game_description}
+            Relationships: {character_relationships}
+            Please reply with a creative description of possible physical and non-physical evidences of the case. It must make all suspects suspicious.
+            Do not add anything else."""
+            )
+    ]
+    evidence_description = ChatOpenAI(temperature=1.0)(evidence_prompt).content
+    return evidence_description
 
 class BidOutputParser(RegexParser):
     def get_format_instructions(self) -> str:
@@ -302,9 +334,11 @@ def run_pipeline(character_names,dead,character_set):
     character_system_messages = character_set['character_system_messages']
     character_relationships = character_set['character_relationships']
 
+    evidences = generate_evidences(game_description,character_relationships)
+
     detective_header = f"""{game_description}.
     You are Detective trying to investigate on the case.
-    You have the knowledge of the evidences of the case.
+    You are the only one with the knowledge of the evidences of the case.{evidences}
     There is no more evidence to be collected beyond this argument.
     Interrogate the suspects with the knowledge.
     You may look out for contradictions in suspects statements.
@@ -315,7 +349,7 @@ def run_pipeline(character_names,dead,character_set):
     Try to make suspects argue against one another.
     Do not say the same things over and over again.
     Speak in the first person from the perspective of a detective.
-    For describing your own body movements, wrap your description in '*'.
+    For describing your own body movements, wrap your description in '|*|'.
     Do not change roles!
     Do not speak from the perspective of anyone else!
     Speak only from the perspective of detective.
@@ -330,7 +364,7 @@ def run_pipeline(character_names,dead,character_set):
     {{message_history}}
     ```
 
-    On the scale of 1 to 8, where 1 is not necessary and 10 is extremely necessary,from the following message rate how much is your envolvement necessary to interrogate and lead the argument to determine the culprit.
+    On the scale of 1 to 7, where 1 is not necessary and 10 is extremely necessary,from the following message rate how much is your envolvement necessary to determine the culprit.
 
     ```
     {{recent_message}}
@@ -376,7 +410,7 @@ def run_pipeline(character_names,dead,character_set):
     ]
     specified_topic = ChatOpenAI(temperature=1.0)(topic_specifier_prompt).content + '''\nSuspects relationships with {}: {}'''.format(dead,'\n'.join(character_relationships))
     simulator.reset('Detective', specified_topic)
-    return simulator, specified_topic
+    return simulator, specified_topic, evidences
 
 # def generate_topic_specifier(character_names,dead,character_relationships):
 #     topic_specifier_prompt = [
