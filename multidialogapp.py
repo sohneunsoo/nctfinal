@@ -87,6 +87,7 @@ transko = st.checkbox('Translate/번역',key='trans_widget')
 # dead = st.text_input('Victim character name')
 # if dead:
 #     st.write(f'You have chosen {dead} to be dead.')
+st.text('')
 
 chara_input = st.text_input('character name', key='chara_widget', on_change=submitchara)
 
@@ -94,12 +95,12 @@ chara_input = st.text_input('character name', key='chara_widget', on_change=subm
 
 st.session_state.chara
 
-if st.session_state.chara == []: 
-    label_visibility = 'hidden'
-else:
-    label_visibility = 'visible'
+# if st.session_state.chara == []: 
+#     label_visibility = 'hidden'
+# else:
+#     label_visibility = 'visible'
 
-delete_chara = st.selectbox('', ['Choose a character to delete']+st.session_state.chara, label_visibility=label_visibility)
+delete_chara = st.selectbox('', ['Choose a character to delete']+st.session_state.chara, label_visibility='collapsed')
 if st.button('clear characters'):
     st.session_state.chara = []
     st.experimental_rerun()
@@ -107,6 +108,7 @@ if st.button('clear characters'):
 
 select_victim = st.selectbox('Select Victim:',st.session_state.chara)
 
+st.text('|\n|\n|')
 
 initialize_but = st.button('Initialize')
 
@@ -125,6 +127,7 @@ userprompt = st.text_input("engage in conv",key='user_text_widget',on_change=sub
 
 
 stop_but = st.button('stop')
+st.text('|\n|\n|')
 
 guess_but = st.button('Guess')
 if guess_but:
@@ -154,8 +157,8 @@ if start_but:
     st.session_state.talk_history = [[],[]]
     simulator, specified_topic, evidences = run_pipeline(st.session_state.talking_chara,select_victim,st.session_state.character_set)
     st.session_state['simulator'] = simulator
-    st.session_state.talk_history[0].append('Detective: '.upper()+trans(specified_topic)+trans(f'\nEvidences (only the detective knows this):{evidences}'))
-    st.session_state.talk_history[1].append('Detective: '.upper()+specified_topic+f'\nEvidences (only the detective knows this):{evidences}')
+    st.session_state.talk_history[0].append('Detective: '.upper()+trans(specified_topic)+trans(f'  \nEvidences (only the detective knows this):{evidences}'))
+    st.session_state.talk_history[1].append('Detective: '.upper()+specified_topic+f'  \nEvidences (only the detective knows this):{evidences}')
 
     st.experimental_rerun()   
     # st.write('Detective: '+specified_topic)
