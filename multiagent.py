@@ -13,6 +13,7 @@ from langchain.schema import (
     BaseMessage,
 )
 import os
+from langchain import GoogleSerperAPIWrapper
 
 
 word_limit = 50
@@ -349,7 +350,6 @@ def run_pipeline(character_names,dead,character_set):
     Your goal is to be as creative as possible to gather as much information as possible to determine the culprit who is amongst the suspects:{', '.join(character_names)}"""
 
     detective_system_message = SystemMessage(content=(f"""{detective_header}
-    Try to make suspects argue against one another.
     Do not say the same things over and over again.
     Speak in the first person from the perspective of a detective.
     For describing your own body movements, wrap your description in '|*|'.
@@ -415,29 +415,17 @@ def run_pipeline(character_names,dead,character_set):
     simulator.reset('Detective', specified_topic)
     return simulator, specified_topic, evidences
 
-# def generate_topic_specifier(character_names,dead,character_relationships):
-#     topic_specifier_prompt = [
-#         SystemMessage(content="You can make a task more specific."),
-#         HumanMessage(content=
-#             f"""{game_description}
-            
-#             You are the detective acting as moderator.
-#             Please make the argument topic more specific. 
-#             Frame the argumet topic as a problem to be solved.
-#             Be creative and imaginative.
-#             Please reply with the specified topic in {word_limit} words or less. 
-#             Speak directly to the suspects: {character_names}.
-#             Do not add anything else."""
-#             )
-#     ]
-#     specified_topic = ChatOpenAI(temperature=1.0)(topic_specifier_prompt).content + f'''\nSuspects relationships with {dead}: {' '.join(character_relationships)}'''
-#     return specified_topic
 
 
-# print(f"(Detective Moderator): {specified_topic}")
-# print('\n')
 
-
-# name, message = simulator.step()
-# print(f"({name}): {message}")
-
+def search_names(user_keyword, num=4,):
+    os.environ["SERPER_API_KEY"] = "9b9a544b7f59dc7f0f81557ae9a116e37fa50c0d"
+    search = GoogleSerperAPIWrapper()
+    search_characters = search.run(f"well-known {user_keyword} characters or people")
+    # search_people = search.run(f"{user_keyword} people names")
+    prompt = f"Write me {num} names in format as <<full name,full name,full name>>, Look thoroughly through google results delimited inside '''. Then choose names randomly amongst those names.'''{search_characters}''' " #\npeople names:'''{search_people}'''\ncharacter names:
+    character_search = [SystemMessage(content="Your response should be delimited by double angled brackets, '<<>>' "),
+HumanMessage(content=prompt)]
+    result = ChatOpenAI(temperature=0)(character_search).content
+    names = [name.strip() for name in ','.join(re.findall(r'<<(.+?)>>',result)).split(',')]
+    return names
