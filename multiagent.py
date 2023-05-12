@@ -103,27 +103,29 @@ class DialogueSimulator:
             return speaker.name, message
             
     def final_call(self,character_names,n=0):
-        vote = {agent.name:0  for agent in self.agents}
+        vote_result = {agent.name:0  for agent in self.agents}
         for agent in self.agents: #detective need to vote too. ya he is part of the agent list
-            message = agent.model([SystemMessage(content="\n".join(agent.message_history + [f'From {character_names}, except yourself, name the person you would name as culprit.'] +[f"\nYour response should be one of {character_names}, delimited by double angled brackets, like this: <<str>>\nDo nothing else."]))]).content
+            message = agent.model([SystemMessage(content=f"""{agent.character_header} 
+                                                 {agent.message_history}
+                                                From {character_names}, except yourself, name the person you would name as culprit.
+                                                Your response should be one of {character_names}, delimited by double angled brackets, like this: <<str>>
+                                                Do nothing else.""")]).content
             votename = re.findall(r'<<(.*)>>',message)[0].strip()
-            if votename not in vote.keys():
+            # votename = agent.vote()
+            if votename not in vote_result.keys():
                 continue
             else:
-                vote[votename] +=1
+                vote_result[votename] +=1
         
-        voted = sorted(vote.items(), key=lambda x:x[1], reverse=True)
+        voted = sorted(vote_result.items(), key=lambda x:x[1], reverse=True)
         
-        print(vote)
+        print(vote_result)
         if voted[0][1] == voted[1][1] and n <3:
             print('Try vote again')
             return self.final_call(n+1)
         else:
             return voted[0][0]
-            # print(vote_parser.parse(message.content))
-            
-    # def return_firstagenthist(self):
-    #     return str(self.agents[0].message_history)
+
             
 
 class BiddingDialogueAgent(DialogueAgent):
@@ -132,10 +134,12 @@ class BiddingDialogueAgent(DialogueAgent):
         name,
         system_message: SystemMessage,
         bidding_template: PromptTemplate,
+        character_header: str,
         model: ChatOpenAI,
     ) -> None:
         super().__init__(name, system_message, model)
         self.bidding_template = bidding_template
+        self.character_header = character_header
         
     def bid(self) -> str:
         """
@@ -149,6 +153,13 @@ class BiddingDialogueAgent(DialogueAgent):
             recent_message=self.message_history[-1])
         bid_string = self.model([SystemMessage(content=prompt)]).content
         return bid_string
+    
+    # def vote(self):
+    #     self.character_header
+    #     message = self.model([SystemMessage(content="\n".join(self.character_header + self.message_history + [f'From {character_names}, except yourself, name the person you would name as culprit.'] +[f"\nYour response should be one of {character_names}, delimited by double angled brackets, like this: <<str>>\nDo nothing else."]))]).content
+    #     votename = re.findall(r'<<(.*)>>',message)[0].strip()
+    #     return votename
+        
         
 
 def generate_a_character_description(character_name):
@@ -260,6 +271,16 @@ Do nothing else.
     """)
     return bidding_template
 
+def generate_character_voting_template(character_header, character_names):
+    voting_template = (f"""{character_header}
+
+```
+{{message_history}}
+```
+From {character_names}, except yourself, name the person you would name as culprit.'
+Your response should be one of {character_names}, delimited by double angled brackets, like this: <<str>>
+Do nothing else.""")
+    return voting_template
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(2),
                     wait=tenacity.wait_none(),  # No waiting time between retries
@@ -315,7 +336,7 @@ The suspects are: {', '.join(character_names)}. One of them is a culprit"""
         else:
             character_headers.append(generate_character_header(character_name, character_description,character_relationship,dead,game_description,topic))
 
-    character_system_messages = [generate_character_system_message(character_name, character_headers,topic) for character_name, character_headers in zip(character_names, character_headers)]
+    character_system_messages = [generate_character_system_message(character_name, character_header,topic) for character_name, character_header in zip(character_names, character_headers)]
 
     character_bidding_templates = [generate_character_bidding_template(character_header) for character_header in character_headers]
     
@@ -325,6 +346,7 @@ The suspects are: {', '.join(character_names)}. One of them is a culprit"""
         'character_bidding_templates': character_bidding_templates,
         'character_system_messages': character_system_messages,
         'character_relationships': character_relationships,
+        'character_headers':character_headers,
         'culprit':culprit
     }
     
@@ -337,6 +359,7 @@ def run_pipeline(character_names,dead,character_set):
     character_system_messages = character_set['character_system_messages']
     character_relationships = character_set['character_relationships']
     culprit = character_set['culprit']
+    character_headers = character_set['character_headers']
 
     evidences = generate_evidences(game_description,character_relationships,culprit)
 
@@ -379,12 +402,13 @@ def run_pipeline(character_names,dead,character_set):
 
 
     characters = []
-    for character_name, character_system_message, bidding_template in zip(character_names, character_system_messages, character_bidding_templates):
+    for character_name, character_system_message, bidding_template, character_header in zip(character_names, character_system_messages, character_bidding_templates, character_headers):
         characters.append(BiddingDialogueAgent(
             name=character_name,
             system_message=character_system_message,
             model=ChatOpenAI(temperature=1),
             bidding_template=bidding_template,
+            character_header = character_header
         ))
 
     characters.append(BiddingDialogueAgent(
@@ -392,6 +416,7 @@ def run_pipeline(character_names,dead,character_set):
             system_message=detective_system_message,
             model=ChatOpenAI(temperature=0.9),
             bidding_template=detective_bidding_template,
+            character_header = detective_header
         ))
     simulator = DialogueSimulator(
     agents=characters,
@@ -423,7 +448,7 @@ def search_names(user_keyword, num=4,):
     search = GoogleSerperAPIWrapper()
     search_characters = search.run(f"well-known {user_keyword} characters or people")
     # search_people = search.run(f"{user_keyword} people names")
-    prompt = f"Write me {num} names in format as <<full name,full name,full name>>, Look thoroughly through google results delimited inside '''. Then choose names randomly amongst those names.'''{search_characters}''' " #\npeople names:'''{search_people}'''\ncharacter names:
+    prompt = f"Write me {num} names of {user_keyword} people and or character.Reply in format as <<full name,full name,full name>>, Look thoroughly through google results delimited inside '''. Then choose names randomly amongst those names.'''{search_characters}''' " #\npeople names:'''{search_people}'''\ncharacter names:
     character_search = [SystemMessage(content="Your response should be delimited by double angled brackets, '<<>>' "),
 HumanMessage(content=prompt)]
     result = ChatOpenAI(temperature=0)(character_search).content

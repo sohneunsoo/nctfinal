@@ -9,7 +9,7 @@ from googletrans import Translator
 
 # os.environ["HUGGINGFACEHUB_API_TOKEN"] = 
 # os.environ['OPENAI_API_KEY'] = 
-# os.environ["OPENAI_API_KEY"] = config.openaiapihaea
+os.environ["OPENAI_API_KEY"] = config.openaiapihaea
 
 # llm = OpenAI(model_name='gpt-3.5-turbo',temperature=0) 
 
@@ -63,14 +63,17 @@ def create_n_get_names():
 
 
 
-
+######################
 ##PAGE LAYOUT
 st.title("It's open")
 
 if st.button('load'):
     st.experimental_rerun()
 
-userapi = st.text_input("Your api key", type="password")
+userapi = st.text_input("Your OpenAI api key", type="password")
+# if userapi == '':
+#     st.stop()
+
 if userapi:
     os.environ["OPENAI_API_KEY"] = userapi
 
@@ -79,21 +82,17 @@ num_chara = st.slider('Choose Number of characters',0,20,4)
 
 getname = st.text_input('Generate characters with keyword',placeholder='eg,trending, marvel, celebrity show names...',key = 'getname_widget', on_change=create_n_get_names)
 
-chara_input = st.text_input('character name', key='chara_widget', on_change=submitchara)
-
+chara_input = st.text_input('Add character name', key='chara_widget', on_change=submitchara)
 
 st.session_state.chara
 
-
-
-delete_chara = st.selectbox('delete character', ['Choose a character to delete']+st.session_state.chara, label_visibility='collapsed')
+delete_chara = st.selectbox('delete character', ['Choose any character to delete']+st.session_state.chara, label_visibility='collapsed')
 if st.button('clear characters'):
     st.session_state.chara = []
     st.experimental_rerun()
 
 
-select_victim = st.selectbox('Select Victim:',st.session_state.chara)
-
+select_victim = st.selectbox('Select Victim:',['Select Victim']+st.session_state.chara, key='select_victim_widget')
 
 
 initialize_but = st.button('Initialize')
@@ -126,18 +125,21 @@ user_guess = st.selectbox('Your Guess:', ['Choose the culprit']+st.session_state
 
 
 
-
+###########################
 #BUTTON/INPUT
 if stop_but:
     st.stop()
 
 
 if initialize_but:
-    st.session_state['talking_chara'] = st.session_state.chara.copy()
-    st.session_state.talking_chara.remove(select_victim)
-    character_set = set_pipeline(st.session_state.talking_chara,select_victim)
-    st.session_state['character_set'] = character_set
-    st.write('Done')
+    if select_victim == 'Select Victim':
+        st.warning("Pleas choose a character to be a victim")
+    else:
+        st.session_state['talking_chara'] = st.session_state.chara.copy()
+        st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
+        character_set = set_pipeline(st.session_state.talking_chara,select_victim)
+        st.session_state['character_set'] = character_set
+        st.write('Done')
 
 if start_but:
     st.session_state.talk_history = [[],[]]
@@ -168,10 +170,9 @@ if user_guess != 'Choose the culprit':
         st.write(f"Wrong! The true culprit is {culprit}")
 
 
-if delete_chara != 'Choose a character to delete':
+if delete_chara != 'Choose any character to delete':
     st.session_state.chara.remove(delete_chara)
     st.experimental_rerun() 
-
 
 
 
