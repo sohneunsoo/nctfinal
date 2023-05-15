@@ -13,8 +13,9 @@ from langchain.schema import (
     BaseMessage,
 )
 import os
-from langchain import GoogleSerperAPIWrapper
-
+from langchain import GoogleSerperAPIWrapper, SerpAPIWrapper
+from langchain.agents import initialize_agent,load_tools,AgentType
+from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 
 word_limit = 50
 
@@ -441,11 +442,13 @@ def run_pipeline(character_names,dead,character_set):
     return simulator, specified_topic, evidences
 
 
+os.environ["SERPER_API_KEY"] = "9b9a544b7f59dc7f0f81557ae9a116e37fa50c0d"
+os.environ["SERPAPI_API_KEY"] = "dbc971cf243ceb5b2728d139575809bd2057bb7e7e02e2fa473d6036d499d6dd"
+search = GoogleSerperAPIWrapper()
+# search = SerpAPIWrapper()
 
 
 def search_names(user_keyword, num=4,):
-    os.environ["SERPER_API_KEY"] = "9b9a544b7f59dc7f0f81557ae9a116e37fa50c0d"
-    search = GoogleSerperAPIWrapper()
     search_characters = search.run(f"well-known {user_keyword} characters or people")
     # search_people = search.run(f"{user_keyword} people names")
     prompt = f"Write me {num} names of {user_keyword} people and or character.Reply in format as <<full name,full name,full name>>, Look thoroughly through google results delimited inside '''. Then choose names randomly amongst those names.'''{search_characters}''' " #\npeople names:'''{search_people}'''\ncharacter names:
@@ -454,3 +457,35 @@ HumanMessage(content=prompt)]
     result = ChatOpenAI(temperature=0)(character_search).content
     names = [name.strip() for name in ','.join(re.findall(r'<<(.+?)>>',result)).split(',')]
     return names
+
+
+def generate_looks_description(chara):
+
+    llm=ChatOpenAI(temperature=0)
+    tools= load_tools(["google-serper"], llm=llm)  #"serpapi"
+    agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+    chara_looks = [] #{}
+    for achara in chara:
+        knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+HumanMessage(content=f"""Do you know {achara}""")]).content
+        if "Y" in knowchara:
+            chara_looks.append(achara)
+        else:
+            result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
+            chara_looks.append(result)
+    return chara_looks    
+
+def image_gen(sdmodelpip,chara=None):
+    chara_looks = generate_looks_description(chara)
+    sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
+    sdmodelpip = sdmodelpip.to("cuda")
+    chara_images_np = []
+    for i in range(len(chara)):
+        images = sdmodelpip(chara_looks[i],num_inference_steps=10)
+        chara_images_np.append(images[0][0])
+        images[0][0].save(f'./charaprofileimg{i}.jpg')
+    return chara_images_np
+    # for i in range(2):
+    #     images[0][i].save(f'./images/charaprofileimg{i}.jpg')
+
+

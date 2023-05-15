@@ -4,8 +4,10 @@ from langchain import HuggingFaceHub, PromptTemplate, LLMChain
 from langchain.llms import OpenAI
 from multiagent import *
 import random
+import torch
 import config
 from googletrans import Translator
+from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 
 # os.environ["HUGGINGFACEHUB_API_TOKEN"] = 
 # os.environ['OPENAI_API_KEY'] = 
@@ -13,11 +15,30 @@ os.environ["OPENAI_API_KEY"] = config.openaiapihaea
 
 # llm = OpenAI(model_name='gpt-3.5-turbo',temperature=0) 
 
+# torch.cuda.set_per_process_memory_fraction(0.5, 0)
+# torch.cuda.empty_cache()
+# total_memory = torch.cuda.get_device_properties(0).total_memory
+# tmp_tensor = torch.empty(int(total_memory * 0.499), dtype=torch.int8, device='cuda')
+# del tmp_tensor
+# torch.cuda.empty_cache()
+# # this allocation will raise a OOM:
+# torch.empty(total_memory // 2, dtype=torch.float16, device='cuda')
 
 
+
+if st.button('clearcache'):
+    st.cache_resource.clear()
 
 
 #FUNCTIONS/STATES
+@st.cache_resource
+def load_model():
+    # st.write('loading model- this will happen only once')
+    sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
+    return sdmodelpip
+# sdmodelpip = load_model()
+
+
 translator = Translator()
 def trans(textinput):
     return translator.translate(textinput,src='en',dest='ko').text
@@ -32,8 +53,6 @@ def submitchara():
     st.session_state.chara.append(st.session_state.chara_widget)
     st.session_state.chara_widget = ''
 
-
-    
 
 if 'talk_history' not in st.session_state:
     st.session_state.talk_history = [[],[]]
@@ -97,12 +116,21 @@ select_victim = st.selectbox('Select Victim:',['Select Victim']+st.session_state
 
 initialize_but = st.button('Initialize')
 
+imagetemp = st.button('image')
+if imagetemp:
+    sdmodelpip = load_model()
+    imagepics = image_gen(sdmodelpip,st.session_state.talking_chara)
+    st.image(imagepics, width=100)   
+    # st.image('./charaprofileimg')
+    # for i in range(2): #len(st.session_state.talking_chara)
+    #     st.image(f'image/charaprofileimg{i}')
+
 start_but = st.button('Start/Reset_conv')
 
 transko = st.checkbox('Translate/번역',key='trans_widget')
 
 if transko:
-    st.text('\n'.join(st.session_state.talk_history[0]))
+    st.text('\n'.join(st.session_state.talk_history[0]))    
 else:
     st.text('\n'.join(st.session_state.talk_history[1]))
 
@@ -140,6 +168,7 @@ if initialize_but:
         character_set = set_pipeline(st.session_state.talking_chara,select_victim)
         st.session_state['character_set'] = character_set
         st.write('Done')
+
 
 if start_but:
     st.session_state.talk_history = [[],[]]
