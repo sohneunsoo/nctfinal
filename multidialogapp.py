@@ -31,11 +31,11 @@ if st.button('clearcache'):
 
 
 #FUNCTIONS/STATES
-@st.cache_resource
-def load_model():
-    # st.write('loading model- this will happen only once')
-    sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
-    return sdmodelpip
+# @st.cache_resource
+# def load_model():
+#     # st.write('loading model- this will happen only once')
+#     sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
+#     return sdmodelpip
 # sdmodelpip = load_model()
 
 
@@ -118,12 +118,14 @@ initialize_but = st.button('Initialize')
 
 imagetemp = st.button('image')
 if imagetemp:
-    sdmodelpip = load_model()
-    imagepics = image_gen(sdmodelpip,st.session_state.talking_chara)
+    # sdmodelpip = load_model()
+    imagepics = image_gen(st.session_state.talking_chara)
     st.image(imagepics, width=100)   
     # st.image('./charaprofileimg')
     # for i in range(2): #len(st.session_state.talking_chara)
     #     st.image(f'image/charaprofileimg{i}')
+
+st.video('')
 
 start_but = st.button('Start/Reset_conv')
 

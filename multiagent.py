@@ -13,6 +13,7 @@ from langchain.schema import (
     BaseMessage,
 )
 import os
+import torch
 from langchain import GoogleSerperAPIWrapper, SerpAPIWrapper
 from langchain.agents import initialize_agent,load_tools,AgentType
 from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
@@ -474,18 +475,23 @@ HumanMessage(content=f"""Do you know {achara}""")]).content
             result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
             chara_looks.append(result)
     return chara_looks    
-    
-def image_gen(sdmodelpip,chara=None):
+
+sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
+
+def image_gen(chara=None):
     chara_looks = generate_looks_description(chara)
     sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
     sdmodelpip = sdmodelpip.to("cuda")
     chara_images_np = []
     for i in range(len(chara)):
-        images = sdmodelpip(chara_looks[i]+'photo realistic profile',num_inference_steps=10)
+        images = sdmodelpip(chara_looks[i]+'illustrative profile',num_inference_steps=10)
         chara_images_np.append(images[0][0])
         images[0][0].save(f'./images/charaprofileimg{i}.jpg')
     return chara_images_np  
     # for i in range(2):
     #     images[0][i].save(f'./images/charaprofileimg{i}.jpg')
+
+def get_vid():
+    pass
 
 
