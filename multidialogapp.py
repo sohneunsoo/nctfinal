@@ -167,7 +167,7 @@ if stop_but:
 
 if initialize_but:
     if select_victim == 'Select Victim':
-        initializeplace.warning("Pleas choose a character to be a victim")
+        initializeplace.warning("Please choose a victim")
     else:
         initializeplace.text('searching & creating character persona...')
         st.session_state['talking_chara'] = st.session_state.chara.copy()
@@ -211,6 +211,7 @@ if user_guess != 'Choose the culprit':
     st.write(f'You chose {user_guess} as the culprit.')
     if culprit == user_guess:
         st.write('Correct! Well done!')
+        st.balloons()
     else:
         st.write(f"Wrong! The true culprit is {culprit}")
 

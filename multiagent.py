@@ -464,7 +464,27 @@ HumanMessage(content=prompt)]
 
 
 
+def generate_looks_description(chara):
+    agentllm=ChatOpenAI(temperature=0)
+    tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+
+    chara_looks = [] #{}
+    for achara in chara:
+        knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+HumanMessage(content=f"""Do you know {achara}""")]).content
+        if "Y" in knowchara:
+            chara_looks.append(achara)
+        else:
+            result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
+            chara_looks.append(result)
+    return chara_looks    
+
 # def generate_looks_description(chara):
+    # agentllm=ChatOpenAI(temperature=0)
+    # tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    # agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+
 #     chara_looks = [] #{}
 #     for achara in chara:
 #         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
