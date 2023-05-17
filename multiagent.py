@@ -17,6 +17,7 @@ import torch
 from langchain import GoogleSerperAPIWrapper, SerpAPIWrapper
 from langchain.agents import initialize_agent,load_tools,AgentType
 from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+import time
 
 word_limit = 50
 
@@ -524,18 +525,24 @@ HumanMessage(content=f"""Is {achara} female?""")]).content
 
 # sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
 
-def image_gen(sdmodelpip,chara,steps):
-    chara_looks, chara_sex = _generate_looks_description(chara)
+def image_gen(sdmodelpip,chara,steps,chara_looks):
+    
     sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
     sdmodelpip = sdmodelpip.to("cuda")
     chara_images_np = []
+    chara_images_name = []
     for i in range(len(chara)):
         images = sdmodelpip(chara_looks[i]+'illustrative, front face',num_inference_steps=steps)
         chara_images_np.append(images[0][0])
-        images[0][0].save(f'./images/charaprofileimg{i}.jpg')
-        blob = bucket.blob(f'charaprofileimg{i}.jpg')
-        blob.upload_from_filename(f'./images/charaprofileimg{i}.jpg')
-    return chara_images_np, chara_sex
+        randtag = np.random.randint(0,999)
+        chara_name_nospace = chara[i].replace(' ','')
+        imagename = f'charaprofileimg_{chara_name_nospace}_{randtag}'
+        filename = f'./images/{imagename}.jpg'
+        images[0][0].save(filename)
+        blob = bucket.blob(f'{imagename}.jpg')
+        blob.upload_from_filename(filename)
+        chara_images_name.append(imagename)
+    return chara_images_np, chara_images_name
     # for i in range(2):
     #     images[0][i].save(f'./images/charaprofileimg{i}.jpg')
 
@@ -545,7 +552,7 @@ bucket = storage_client.bucket('watergaran')
 
 import requests
 
-def get_vid(chara_idx,message,sex):
+def get_vid(chara_idx,message,sex,chara_img_name):
     firstsen = re.search(r'(.*?)[,.?!]',message)[0]
     voice = "en-US-GuyNeural"
     tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
@@ -558,7 +565,7 @@ def get_vid(chara_idx,message,sex):
         
     headers = {'Authorization': 'Basic ZXVuc29vMTRAc2trdWtkcC5yZS5rcg:3fGmYrhVQKqfetoLtTf50'}
     postjson = {
-    "source_url": f"https://storage.googleapis.com/watergaran/charaprofileimg{chara_idx}.jpg",
+    "source_url": f"https://storage.googleapis.com/watergaran/{chara_img_name}.jpg",
     "script": {
         "type": "text",
         "input": firstsen,
@@ -579,6 +586,7 @@ def get_vid(chara_idx,message,sex):
         return 'error'
     else:
         id = response['id']
+        time.sleep(10)
         result = _send_getresponse(api_endpoint,id,headers)
         return result
         # getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
@@ -594,16 +602,21 @@ def _send_getresponse(api_endpoint,id,headers):
     getresponse = requests.get(api_endpoint+id,headers=headers).json()
     print('SEC RESP:',getresponse)
     status = getresponse['status']
+    print("--------status--------",status)
     if status == 'done':
         print('status done')
         result_url = getresponse['result_url'] 
+        print(getresponse)
+        print(result_url)
         return result_url
     if status == 'error':
         print('status error')
         print(getresponse)
         return 'error'
-    else:
-        _send_getresponse(api_endpoint,id,headers)
+    elif status == 'started':
+        print("쉽시다..")
+        time.sleep(10)
+        return _send_getresponse(api_endpoint, id, headers)
 
 
 

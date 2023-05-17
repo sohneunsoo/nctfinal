@@ -13,17 +13,6 @@ from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 # os.environ['OPENAI_API_KEY'] = 
 os.environ["OPENAI_API_KEY"] = config.openaiapihaea
 
-# llm = OpenAI(model_name='gpt-3.5-turbo',temperature=0) 
-
-# torch.cuda.set_per_process_memory_fraction(0.5, 0)
-# torch.cuda.empty_cache()
-# total_memory = torch.cuda.get_device_properties(0).total_memory
-# tmp_tensor = torch.empty(int(total_memory * 0.499), dtype=torch.int8, device='cuda')
-# del tmp_tensor
-# torch.cuda.empty_cache()
-# # this allocation will raise a OOM:
-# torch.empty(total_memory // 2, dtype=torch.float16, device='cuda')
-
 
 
 if st.button('clearcache'):
@@ -64,7 +53,7 @@ if 'name_msg' not in st.session_state:
 if 'talking_chara' not in st.session_state:
     st.session_state.talking_chara = []
 if 'chara_img' not in st.session_state:
-    st.session_state.chara_img = st.empty()
+    st.session_state.chara_img = ''
 
 def produce_next_conv():
     simulator = st.session_state.get('simulator')
@@ -98,8 +87,8 @@ if st.button('load'):
     st.experimental_rerun()
 
 userapi = st.text_input("Your OpenAI api key", type="password")
-# if userapi == '':
-#     st.stop()
+if userapi == '':
+    st.stop()
 
 if userapi:
     os.environ["OPENAI_API_KEY"] = userapi
@@ -126,16 +115,13 @@ initialize_but = st.button('Initialize')
 initializeplace = st.empty()
 
 img_qual = st.slider('Image Quality, Diffusion steps',0,50,10)
+imginit = st.button('image Initialize')
+imginitplace = st.empty()
 imgtemp = st.button('image')
 imageplace = st.session_state.chara_img
-if imgtemp:
-    sdmodelpip = load_model()
-    imagepics, chara_sex = image_gen(sdmodelpip,st.session_state.talking_chara,img_qual)
-    st.session_state.chara_sex = chara_sex
-    st.session_state.chara_img = st.image(imagepics, width=200)   
-    # st.image('./charaprofileimg')
-    # for i in range(2): #len(st.session_state.talking_chara)
-    #     st.image(f'image/charaprofileimg{i}')
+if st.session_state.chara_img != '':
+    st.image(st.session_state.chara_img, width=200)  
+
 
 
 
@@ -147,6 +133,17 @@ if transko:
     st.write('\n'.join(st.session_state.talk_history[0]))    
 else:
     st.write('\n'.join(st.session_state.talk_history[1]))
+
+
+if st.session_state.name_msg[0] in st.session_state.talking_chara:
+        idx = st.session_state.chara_idx[st.session_state.name_msg[0]]
+        if st.button('Speak'):
+            vidresult = get_vid(idx,st.session_state.name_msg[1],st.session_state.chara_sex[idx],st.session_state.chara_img_name[idx])
+            if vidresult == 'error':
+                st.write(f'{st.session_state.name_msg[0]} refused to speak to you! (error)')
+            else:
+                # st.write(vidresult)
+                st.video(vidresult)
 
 next_but = st.button('Next')
 
@@ -190,7 +187,7 @@ if initialize_but:
 if start_but:
     st.session_state.talk_history = [[],[]]
     simulator, specified_topic, evidences = run_pipeline(st.session_state.talking_chara,select_victim,st.session_state.character_set)
-    st.write('start:',specified_topic,'evi',evidences)
+    # st.write('start:',specified_topic,'evi',evidences)
     st.session_state['simulator'] = simulator
     st.session_state.talk_history[0].append('Detective: '.upper()+trans(specified_topic)+trans(f'  \nEvidences  (only the detective knows this):{evidences}'))
     st.session_state.talk_history[1].append('Detective: '.upper()+specified_topic+f'  \nsEvidences  (only the detective knows this):{evidences}')
@@ -200,34 +197,19 @@ if start_but:
 
 if next_but:
     name, message = produce_next_conv()
-<<<<<<< HEAD
     st.session_state.name_msg = [name,message]
     # if name in st.session_state.talking_chara:
     #     idx = st.session_state.chara_idx[name]
     #     if st.button('Speak'):
     #         vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
-    #         st.video(vidresult)
-=======
-    if name in st.session_state.talking_chara:
-        idx = st.session_state.chara_idx[name]
-        if st.button('Speak'):
-            vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
-            if vidresult == 'error':
-                st.write('error- cannot produce...')
-            else:
-                st.video(vidresult)
->>>>>>> c3e37d6adb9c696d49ff73ee1d41810df285a18b
+    #         if vidresult == 'error':
+    #             st.write('error- cannot produce...')
+    #         else:
+    #             st.video(vidresult)
     st.experimental_rerun()
 
-if st.session_state.name_msg[0] in st.session_state.talking_chara:
-        idx = st.session_state.chara_idx[st.session_state.name_msg[0]]
-        if st.button('Speak'):
-            vidresult = get_vid(idx,st.session_state.name_msg[1],st.session_state.chara_sex[idx])
-            if vidresult == 'error':
-                st.write(f'{st.session_state.name_msg[0]} refused to speak to you! (error)')
-            else:
-                st.write(vidresult)
-                st.video(vidresult)
+
+
 
 if userprompt:
 
@@ -248,6 +230,20 @@ if delete_chara != 'Choose any character to delete':
     st.session_state.chara.remove(delete_chara)
     st.experimental_rerun() 
 
+if imginit:
+    chara_looks, chara_sex = generate_looks_description(st.session_state.talking_chara)
+    st.session_state.chara_sex = chara_sex
+    st.session_state.chara_looks = chara_looks
+    imageinitplace = st.write('Done') 
 
+if imgtemp:
+    sdmodelpip = load_model()
+    imagepics, chara_images_name= image_gen(sdmodelpip,st.session_state.talking_chara,img_qual,st.session_state.chara_looks)
+    st.session_state.chara_img = imagepics
+    st.session_state.chara_img_name = chara_images_name
+    st.experimental_rerun()
+    # st.image('./charaprofileimg')
+    # for i in range(2): #len(st.session_state.talking_chara)
+    #     st.image(f'image/charaprofileimg{i}')
 
 st.stop()
