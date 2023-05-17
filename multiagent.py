@@ -464,7 +464,6 @@ HumanMessage(content=prompt)]
 
 
 
-<<<<<<< HEAD
 def generate_looks_description(chara):
     agentllm=ChatOpenAI(temperature=0)
     tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
@@ -481,8 +480,6 @@ HumanMessage(content=f"""Do you know {achara}""")]).content
             chara_looks.append(result)
     return chara_looks    
 
-=======
->>>>>>> 36a2d0de58118f781d7e632c9dcd7894ed15d2b3
 # def generate_looks_description(chara):
     # agentllm=ChatOpenAI(temperature=0)
     # tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
