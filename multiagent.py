@@ -464,6 +464,7 @@ HumanMessage(content=prompt)]
 
 
 
+<<<<<<< HEAD
 def generate_looks_description(chara):
     agentllm=ChatOpenAI(temperature=0)
     tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
@@ -480,48 +481,64 @@ HumanMessage(content=f"""Do you know {achara}""")]).content
             chara_looks.append(result)
     return chara_looks    
 
+=======
+>>>>>>> 36a2d0de58118f781d7e632c9dcd7894ed15d2b3
 # def generate_looks_description(chara):
     # agentllm=ChatOpenAI(temperature=0)
     # tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
     # agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
 
 #     chara_looks = [] #{}
-#     chara_sex = []
 #     for achara in chara:
 #         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
 # HumanMessage(content=f"""Do you know {achara}""")]).content
 #         if "Y" in knowchara:
-#             sex = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
-# HumanMessage(content=f"""Is {achara} female?""")]).content
-#             if "Y" in sex:
-#                 chara_sex.append("F")
-#             else:
-#                 chara_sex.append("M")
 #             chara_looks.append(achara)
 #         else:
 #             result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
 #             chara_looks.append(result)
-#             sex = agent.run(f"What is {achara}'s gender?")
-#             if 'f' or 'F' in sex:
-#                 chara_sex.append("F")
-#             else:
-#                 chara_sex.append("M")
-#     return chara_looks, chara_sex   
+#     return chara_looks    
+
+def generate_looks_description(chara):
+    chara_looks = [] #{}
+    chara_sex = []
+    for achara in chara:
+        knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+HumanMessage(content=f"""Do you know {achara}""")]).content
+        if "Y" in knowchara:
+            sex = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+HumanMessage(content=f"""Is {achara} female?""")]).content
+            if "Y" in sex:
+                chara_sex.append("F")
+            else:
+                chara_sex.append("M")
+            chara_looks.append(achara)
+        else:
+            result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
+            chara_looks.append(result)
+            sex = agent.run(f"What is {achara}'s gender?")
+            if 'f' or 'F' in sex:
+                chara_sex.append("F")
+            else:
+                chara_sex.append("M")
+    return chara_looks, chara_sex   
 
 
 
 sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
 
 def image_gen(chara=None):
-    chara_looks = generate_looks_description(chara)
+    chara_looks, chara_sex = generate_looks_description(chara)
     sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
     sdmodelpip = sdmodelpip.to("cuda")
     chara_images_np = []
     for i in range(len(chara)):
-        images = sdmodelpip(chara_looks[i]+'illustrative profile',num_inference_steps=10)
+        images = sdmodelpip(chara_looks[i]+'illustrative, front face, profile',num_inference_steps=10)
         chara_images_np.append(images[0][0])
         images[0][0].save(f'./images/charaprofileimg{i}.jpg')
-    return chara_images_np  
+        blob = bucket.blob(f'charaprofileimg{i}.jpg')
+        blob.upload_from_filename(f'./images/charaprofileimg{i}.jpg')
+    return chara_images_np, chara_sex
     # for i in range(2):
     #     images[0][i].save(f'./images/charaprofileimg{i}.jpg')
 
@@ -534,7 +551,7 @@ import requests
 def get_vid(chara_idx,message,sex):
     firstsen = re.search(r'(.*?)[,.?!]',message)[0]
     tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
-                           HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
+                        HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
     if 'M' in tone or tone not in ['Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering','Hopeful']:
         tone = 'Default'
     if sex == 'F':
@@ -575,10 +592,10 @@ def get_vid(chara_idx,message,sex):
 
 
 
-def save_img_gcs(chara):
-    for i in range(len(chara)):
-        blob = bucket.blob(f'charaprofileimg{i}.jpg')
-        blob.upload_from_filename(f'./images/charaprofileimg{i}.jpg')
+# def save_img_gcs(chara):
+#     for i in range(len(chara)):
+#         blob = bucket.blob(f'charaprofileimg{i}.jpg')
+#         blob.upload_from_filename(f'./images/charaprofileimg{i}.jpg')
 
 
 
