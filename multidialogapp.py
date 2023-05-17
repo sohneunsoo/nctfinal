@@ -31,11 +31,11 @@ if st.button('clearcache'):
 
 
 #FUNCTIONS/STATES
-# @st.cache_resource
-# def load_model():
-#     # st.write('loading model- this will happen only once')
-#     sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
-#     return sdmodelpip
+@st.cache_resource
+def load_model():
+    # st.write('loading model- this will happen only once')
+    sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
+    return sdmodelpip
 # sdmodelpip = load_model()
 
 
@@ -58,7 +58,13 @@ if 'talk_history' not in st.session_state:
     st.session_state.talk_history = [[],[]]
 simulator = None
 
+if 'name_msg' not in st.session_state:
+    st.session_state.name_msg = ['','']
 
+if 'talking_chara' not in st.session_state:
+    st.session_state.talking_chara = []
+if 'chara_img' not in st.session_state:
+    st.session_state.chara_img = st.empty()
 
 def produce_next_conv():
     simulator = st.session_state.get('simulator')
@@ -119,12 +125,14 @@ select_victim = st.selectbox('Select Victim:',['Select Victim']+st.session_state
 initialize_but = st.button('Initialize')
 initializeplace = st.empty()
 
-imagetemp = st.button('image')
-if imagetemp:
-    # sdmodelpip = load_model()
-    imagepics, chara_sex = image_gen(st.session_state.talking_chara)
+img_qual = st.slider('Image Quality, Diffusion steps',0,50,10)
+imgtemp = st.button('image')
+imageplace = st.session_state.chara_img
+if imgtemp:
+    sdmodelpip = load_model()
+    imagepics, chara_sex = image_gen(sdmodelpip,st.session_state.talking_chara,img_qual)
     st.session_state.chara_sex = chara_sex
-    st.image(imagepics, width=100)   
+    st.session_state.chara_img = st.image(imagepics, width=200)   
     # st.image('./charaprofileimg')
     # for i in range(2): #len(st.session_state.talking_chara)
     #     st.image(f'image/charaprofileimg{i}')
@@ -136,9 +144,9 @@ start_but = st.button('Start/Reset_conv')
 transko = st.checkbox('Translate/번역',key='trans_widget')
 
 if transko: 
-    st.text('\n'.join(st.session_state.talk_history[0]))    
+    st.write('\n'.join(st.session_state.talk_history[0]))    
 else:
-    st.text('\n'.join(st.session_state.talk_history[1]))
+    st.write('\n'.join(st.session_state.talk_history[1]))
 
 next_but = st.button('Next')
 
@@ -169,7 +177,7 @@ if initialize_but:
     if select_victim == 'Select Victim':
         initializeplace.warning("Please choose a victim")
     else:
-        initializeplace.text('searching & creating character persona...')
+        initializeplace.text('Searching & Creating Character Persona...')
         st.session_state['talking_chara'] = st.session_state.chara.copy()
         st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
         st.session_state.chara_idx = {name:idx for idx,name in enumerate(st.session_state.talking_chara)}
@@ -182,6 +190,7 @@ if initialize_but:
 if start_but:
     st.session_state.talk_history = [[],[]]
     simulator, specified_topic, evidences = run_pipeline(st.session_state.talking_chara,select_victim,st.session_state.character_set)
+    st.write('start:',specified_topic,'evi',evidences)
     st.session_state['simulator'] = simulator
     st.session_state.talk_history[0].append('Detective: '.upper()+trans(specified_topic)+trans(f'  \nEvidences  (only the detective knows this):{evidences}'))
     st.session_state.talk_history[1].append('Detective: '.upper()+specified_topic+f'  \nsEvidences  (only the detective knows this):{evidences}')
@@ -191,13 +200,24 @@ if start_but:
 
 if next_but:
     name, message = produce_next_conv()
-    if name in st.session_state.talking_chara:
-        idx = st.session_state.chara_idx[name]
-        if st.button('Speak'):
-            vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
-            st.video(vidresult)
+    st.session_state.name_msg = [name,message]
+    # if name in st.session_state.talking_chara:
+    #     idx = st.session_state.chara_idx[name]
+    #     if st.button('Speak'):
+    #         vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
+    #         st.video(vidresult)
     st.experimental_rerun()
-    
+
+if st.session_state.name_msg[0] in st.session_state.talking_chara:
+        idx = st.session_state.chara_idx[st.session_state.name_msg[0]]
+        if st.button('Speak'):
+            vidresult = get_vid(idx,st.session_state.name_msg[1],st.session_state.chara_sex[idx])
+            if vidresult == 'error':
+                st.write(f'{st.session_state.name_msg[0]} refused to speak to you! (error)')
+            else:
+                st.write(vidresult)
+                st.video(vidresult)
+
 if userprompt:
 
     st.experimental_rerun()

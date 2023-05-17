@@ -453,7 +453,7 @@ search = GoogleSerperAPIWrapper()
 def search_names(user_keyword, num=4,):
     search_characters = search.run(f"well-known {user_keyword} characters or people")
     # search_people = search.run(f"{user_keyword} people names")
-    prompt = f"Write me {num} names of {user_keyword} people and or character.Reply in format as <<full name,full name,full name>>, Look thoroughly through google results delimited inside '''. Then choose names randomly amongst those names.'''{search_characters}''' " #\npeople names:'''{search_people}'''\ncharacter names:
+    prompt = f"Write me {num} names of {user_keyword} people and or character.Reply in format as <<full name,full name,full name>>, if you do not know of any names, look thoroughly through google results delimited inside '''. Then choose names randomly amongst those names.'''{search_characters}''' " #\npeople names:'''{search_people}'''\ncharacter names:
     character_search = [SystemMessage(content="Your response should be delimited by double angled brackets, '<<>>' "),
 HumanMessage(content=prompt)]
     result = ChatOpenAI(temperature=0)(character_search).content
@@ -464,21 +464,18 @@ HumanMessage(content=prompt)]
 
 
 
-def generate_looks_description(chara):
-    agentllm=ChatOpenAI(temperature=0)
-    tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
-    agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+# def generate_looks_description(chara):
 
-    chara_looks = [] #{}
-    for achara in chara:
-        knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
-HumanMessage(content=f"""Do you know {achara}""")]).content
-        if "Y" in knowchara:
-            chara_looks.append(achara)
-        else:
-            result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
-            chara_looks.append(result)
-    return chara_looks    
+#     chara_looks = [] #{}
+#     for achara in chara:
+#         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+# HumanMessage(content=f"""Do you know {achara}""")]).content
+#         if "Y" in knowchara:
+#             chara_looks.append(achara)
+#         else:
+#             result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
+#             chara_looks.append(result)
+#     return chara_looks    
 
 # def generate_looks_description(chara):
     # agentllm=ChatOpenAI(temperature=0)
@@ -496,7 +493,11 @@ HumanMessage(content=f"""Do you know {achara}""")]).content
 #             chara_looks.append(result)
 #     return chara_looks    
 
-def generate_looks_description(chara):
+def _generate_looks_description(chara):
+    agentllm=ChatOpenAI(temperature=0)
+    tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    agent = initialize_agent(tools,agentllm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+
     chara_looks = [] #{}
     chara_sex = []
     for achara in chara:
@@ -522,15 +523,15 @@ HumanMessage(content=f"""Is {achara} female?""")]).content
 
 
 
-sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
+# sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
 
-def image_gen(chara=None):
-    chara_looks, chara_sex = generate_looks_description(chara)
+def image_gen(sdmodelpip,chara,steps):
+    chara_looks, chara_sex = _generate_looks_description(chara)
     sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
     sdmodelpip = sdmodelpip.to("cuda")
     chara_images_np = []
     for i in range(len(chara)):
-        images = sdmodelpip(chara_looks[i]+'illustrative, front face, profile',num_inference_steps=10)
+        images = sdmodelpip(chara_looks[i]+'illustrative, front face',num_inference_steps=steps)
         chara_images_np.append(images[0][0])
         images[0][0].save(f'./images/charaprofileimg{i}.jpg')
         blob = bucket.blob(f'charaprofileimg{i}.jpg')
@@ -549,6 +550,7 @@ def get_vid(chara_idx,message,sex):
     firstsen = re.search(r'(.*?)[,.?!]',message)[0]
     tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
                         HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
+    print('TONE:',tone)
     if 'M' in tone or tone not in ['Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering','Hopeful']:
         tone = 'Default'
     if sex == 'F':
@@ -572,20 +574,37 @@ def get_vid(chara_idx,message,sex):
 }
     api_endpoint = 'https://api.d-id.com/talks/'
     response = requests.post(api_endpoint, json=postjson, headers=headers).json()
-    print(response)
+    print('FIRST RESP:',response)
     if 'id' not in response.keys():
         print('no id')
         return 'error'
     else:
         id = response['id']
-        getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
-        status = getresponse['status']
-        if status == 'done':
-            result_url = getresponse['result_url'] 
-            return result_url
-        if status == 'error':
-            print('status error')
-            return 'error'
+        result = _send_getresponse(api_endpoint,id,headers)
+        return result
+        # getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
+        # status = getresponse['status']
+        # if status == 'done':
+        #     result_url = getresponse['result_url'] 
+        #     return result_url
+        # if status == 'error':
+        #     print('status error')
+        #     return 'error'
+        
+def _send_getresponse(api_endpoint,id,headers):
+    getresponse = requests.get(api_endpoint+id,headers=headers).json()
+    print('SEC RESP:',getresponse)
+    status = getresponse['status']
+    if status == 'done':
+        print('status done')
+        result_url = getresponse['result_url'] 
+        return result_url
+    if status == 'error':
+        print('status error')
+        print(getresponse)
+        return 'error'
+    else:
+        _send_getresponse(api_endpoint,id,headers)
 
 
 
