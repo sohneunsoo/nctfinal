@@ -131,7 +131,7 @@ if imagetemp:
     # for i in range(2): #len(st.session_state.talking_chara)
     #     st.image(f'image/charaprofileimg{i}')
 
-st.video('')
+# st.video('')
 
 start_but = st.button('Start/Reset_conv')
 
@@ -169,7 +169,7 @@ if stop_but:
 
 if initialize_but:
     if select_victim == 'Select Victim':
-        initializeplace.warning("Pleas choose a character to be a victim")
+        initializeplace.warning("Please choose a victim")
     else:
         st.session_state['talking_chara'] = st.session_state.chara.copy()
         st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
@@ -203,6 +203,7 @@ if user_guess != 'Choose the culprit':
     st.write(f'You chose {user_guess} as the culprit.')
     if culprit == user_guess:
         st.write('Correct! Well done!')
+        st.balloons()
     else:
         st.write(f"Wrong! The true culprit is {culprit}")
 

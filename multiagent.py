@@ -462,12 +462,13 @@ HumanMessage(content=prompt)]
 
 
 
-agentllm=ChatOpenAI(temperature=0)
-tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
-agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
 
 
 def generate_looks_description(chara):
+    agentllm=ChatOpenAI(temperature=0)
+    tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+
     chara_looks = [] #{}
     for achara in chara:
         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
@@ -480,6 +481,10 @@ HumanMessage(content=f"""Do you know {achara}""")]).content
     return chara_looks    
 
 # def generate_looks_description(chara):
+    # agentllm=ChatOpenAI(temperature=0)
+    # tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    # agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+
 #     chara_looks = [] #{}
 #     chara_sex = []
 #     for achara in chara:
