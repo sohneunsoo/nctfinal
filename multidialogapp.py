@@ -66,10 +66,7 @@ def produce_next_conv():
     st.session_state['simulator'] = simulator
     st.session_state.talk_history[0].append(f'\n{name} \:'.upper()+ trans(f' {message}'))
     st.session_state.talk_history[1].append(f'\n{name} \:'.upper()+ f' {message}')
-    if name in st.session_state.talking_chara:
-        if st.button('Speak'):
-            vidresult = get_vid(st.session_state.chara_idx[name],message,sex)
-            st.video(vidresult)
+
     return name,message
 
 # if 'user_text' not in st.session_state:
@@ -125,13 +122,14 @@ initializeplace = st.empty()
 imagetemp = st.button('image')
 if imagetemp:
     # sdmodelpip = load_model()
-    imagepics = image_gen(st.session_state.talking_chara)
+    imagepics, chara_sex = image_gen(st.session_state.talking_chara)
+    st.session_state.chara_sex = chara_sex
     st.image(imagepics, width=100)   
     # st.image('./charaprofileimg')
     # for i in range(2): #len(st.session_state.talking_chara)
     #     st.image(f'image/charaprofileimg{i}')
 
-st.video('')
+
 
 start_but = st.button('Start/Reset_conv')
 
@@ -171,12 +169,14 @@ if initialize_but:
     if select_victim == 'Select Victim':
         initializeplace.warning("Pleas choose a character to be a victim")
     else:
+        initializeplace.text('searching & creating character persona...')
         st.session_state['talking_chara'] = st.session_state.chara.copy()
         st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
         st.session_state.chara_idx = {name:idx for idx,name in enumerate(st.session_state.talking_chara)}
         character_set = set_pipeline(st.session_state.talking_chara,select_victim)
         st.session_state['character_set'] = character_set
         initializeplace.text('Done')
+        st.write(st.session_state.chara_idx)  ####
 
 
 if start_but:
@@ -190,7 +190,12 @@ if start_but:
 
 
 if next_but:
-    produce_next_conv()
+    name, message = produce_next_conv()
+    if name in st.session_state.talking_chara:
+        idx = st.session_state.chara_idx[name]
+        if st.button('Speak'):
+            vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
+            st.video(vidresult)
     st.experimental_rerun()
     
 if userprompt:
