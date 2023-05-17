@@ -493,11 +493,18 @@ HumanMessage(content=prompt)]
 #             chara_looks.append(result)
 #     return chara_looks    
 
+<<<<<<< HEAD
 def _generate_looks_description(chara):
     agentllm=ChatOpenAI(temperature=0)
     tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
     agent = initialize_agent(tools,agentllm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
 
+=======
+def generate_looks_description(chara):
+    agentllm=ChatOpenAI(temperature=0)
+    tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    agent = initialize_agent(tools,agentllm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+>>>>>>> c3e37d6adb9c696d49ff73ee1d41810df285a18b
     chara_looks = [] #{}
     chara_sex = []
     for achara in chara:
@@ -548,6 +555,7 @@ import requests
 
 def get_vid(chara_idx,message,sex):
     firstsen = re.search(r'(.*?)[,.?!]',message)[0]
+    voice = "en-US-GuyNeural"
     tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
                         HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
     print('TONE:',tone)
@@ -555,8 +563,7 @@ def get_vid(chara_idx,message,sex):
         tone = 'Default'
     if sex == 'F':
         voice = "en-US-JennyNeural"
-    else: 
-        voice = "en-US-GuyNeural"
+        
     headers = {'Authorization': 'Basic ZXVuc29vMTRAc2trdWtkcC5yZS5rcg:3fGmYrhVQKqfetoLtTf50'}
     postjson = {
     "source_url": f"https://storage.googleapis.com/watergaran/charaprofileimg{chara_idx}.jpg",
@@ -580,6 +587,7 @@ def get_vid(chara_idx,message,sex):
         return 'error'
     else:
         id = response['id']
+<<<<<<< HEAD
         result = _send_getresponse(api_endpoint,id,headers)
         return result
         # getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
@@ -605,6 +613,16 @@ def _send_getresponse(api_endpoint,id,headers):
         return 'error'
     else:
         _send_getresponse(api_endpoint,id,headers)
+=======
+        getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
+        status = getresponse['status']
+        if status == 'done':
+            result_url = getresponse['result_url'] 
+            return result_url
+        if status == 'error':
+            print('status error:', getresponse)
+            return 'error'
+>>>>>>> c3e37d6adb9c696d49ff73ee1d41810df285a18b
 
 
 

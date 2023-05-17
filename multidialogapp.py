@@ -200,12 +200,23 @@ if start_but:
 
 if next_but:
     name, message = produce_next_conv()
+<<<<<<< HEAD
     st.session_state.name_msg = [name,message]
     # if name in st.session_state.talking_chara:
     #     idx = st.session_state.chara_idx[name]
     #     if st.button('Speak'):
     #         vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
     #         st.video(vidresult)
+=======
+    if name in st.session_state.talking_chara:
+        idx = st.session_state.chara_idx[name]
+        if st.button('Speak'):
+            vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
+            if vidresult == 'error':
+                st.write('error- cannot produce...')
+            else:
+                st.video(vidresult)
+>>>>>>> c3e37d6adb9c696d49ff73ee1d41810df285a18b
     st.experimental_rerun()
 
 if st.session_state.name_msg[0] in st.session_state.talking_chara:
