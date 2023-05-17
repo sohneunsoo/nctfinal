@@ -461,11 +461,13 @@ HumanMessage(content=prompt)]
     return names
 
 
-def generate_looks_description(chara):
 
-    llm=ChatOpenAI(temperature=0)
-    tools= load_tools(["google-serper"], llm=llm)  #"serpapi"
-    agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+agentllm=ChatOpenAI(temperature=0)
+tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
+
+
+def generate_looks_description(chara):
     chara_looks = [] #{}
     for achara in chara:
         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
@@ -476,6 +478,32 @@ HumanMessage(content=f"""Do you know {achara}""")]).content
             result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
             chara_looks.append(result)
     return chara_looks    
+
+# def generate_looks_description(chara):
+#     chara_looks = [] #{}
+#     chara_sex = []
+#     for achara in chara:
+#         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+# HumanMessage(content=f"""Do you know {achara}""")]).content
+#         if "Y" in knowchara:
+#             sex = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
+# HumanMessage(content=f"""Is {achara} female?""")]).content
+#             if "Y" in sex:
+#                 chara_sex.append("F")
+#             else:
+#                 chara_sex.append("M")
+#             chara_looks.append(achara)
+#         else:
+#             result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
+#             chara_looks.append(result)
+#             sex = agent.run(f"What is {achara}'s gender?")
+#             if 'f' or 'F' in sex:
+#                 chara_sex.append("F")
+#             else:
+#                 chara_sex.append("M")
+#     return chara_looks, chara_sex   
+
+
 
 sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
 
@@ -492,7 +520,60 @@ def image_gen(chara=None):
     # for i in range(2):
     #     images[0][i].save(f'./images/charaprofileimg{i}.jpg')
 
-def get_vid():
-    pass
+from google.cloud import storage
+storage_client = storage.Client()
+bucket = storage_client.bucket('watergaran')
+
+import requests
+
+def get_vid(chara_idx,message,sex):
+    firstsen = re.search(r'(.*?)[,.?!]',message)[0]
+    tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
+                           HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
+    if 'M' in tone or tone not in ['Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering','Hopeful']:
+        tone = 'Default'
+    if sex == 'F':
+        voice = "en-US-JennyNeural"
+    else: 
+        voice = "en-US-GuyNeural"
+    headers = {'Authorization': 'Basic ZXVuc29vMTRAc2trdWtkcC5yZS5rcg:3fGmYrhVQKqfetoLtTf50'}
+    postjson = {
+    "source_url": f"https://storage.googleapis.com/watergaran/charaprofileimg{chara_idx}.jpg",
+    "script": {
+        "type": "text",
+        "input": firstsen,
+        "provider": {
+            "type": "microsoft",
+            "voice_id": voice,
+            "voice_config": {
+                "style": tone
+            }
+        }
+    }
+}
+    api_endpoint = 'https://api.d-id.com/talks/'
+    response = requests.post(api_endpoint, json=postjson, headers=headers).json()
+    print(response)
+    if 'id' not in response.keys():
+        print('no id')
+        return 'error'
+    else:
+        id = response['id']
+        getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
+        status = getresponse['status']
+        if status == 'done':
+            result_url = getresponse['result_url'] 
+            return result_url
+        if status == 'error':
+            print('status error')
+            return 'error'
+
+
+
+def save_img_gcs(chara):
+    for i in range(len(chara)):
+        blob = bucket.blob(f'charaprofileimg{i}.jpg')
+        blob.upload_from_filename(f'./images/charaprofileimg{i}.jpg')
+
 
 

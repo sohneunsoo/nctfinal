@@ -66,6 +66,11 @@ def produce_next_conv():
     st.session_state['simulator'] = simulator
     st.session_state.talk_history[0].append(f'\n{name} \:'.upper()+ trans(f' {message}'))
     st.session_state.talk_history[1].append(f'\n{name} \:'.upper()+ f' {message}')
+    if name in st.session_state.talking_chara:
+        if st.button('Speak'):
+            vidresult = get_vid(st.session_state.chara_idx[name],message,sex)
+            st.video(vidresult)
+    return name,message
 
 # if 'user_text' not in st.session_state:
 st.session_state.user_text = ''
@@ -115,6 +120,7 @@ select_victim = st.selectbox('Select Victim:',['Select Victim']+st.session_state
 
 
 initialize_but = st.button('Initialize')
+initializeplace = st.empty()
 
 imagetemp = st.button('image')
 if imagetemp:
@@ -131,7 +137,7 @@ start_but = st.button('Start/Reset_conv')
 
 transko = st.checkbox('Translate/번역',key='trans_widget')
 
-if transko:
+if transko: 
     st.text('\n'.join(st.session_state.talk_history[0]))    
 else:
     st.text('\n'.join(st.session_state.talk_history[1]))
@@ -163,13 +169,14 @@ if stop_but:
 
 if initialize_but:
     if select_victim == 'Select Victim':
-        st.warning("Pleas choose a character to be a victim")
+        initializeplace.warning("Pleas choose a character to be a victim")
     else:
         st.session_state['talking_chara'] = st.session_state.chara.copy()
         st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
+        st.session_state.chara_idx = {name:idx for idx,name in enumerate(st.session_state.talking_chara)}
         character_set = set_pipeline(st.session_state.talking_chara,select_victim)
         st.session_state['character_set'] = character_set
-        st.write('Done')
+        initializeplace.text('Done')
 
 
 if start_but:
@@ -189,7 +196,6 @@ if next_but:
 if userprompt:
 
     st.experimental_rerun()
-
 
 
 if user_guess != 'Choose the culprit':
