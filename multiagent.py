@@ -462,9 +462,6 @@ HumanMessage(content=prompt)]
 
 
 
-agentllm=ChatOpenAI(temperature=0)
-tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
-agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
 
 
 # def generate_looks_description(chara):
@@ -480,6 +477,9 @@ agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
 #     return chara_looks    
 
 def generate_looks_description(chara):
+    agentllm=ChatOpenAI(temperature=0)
+    tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
+    agent = initialize_agent(tools,agentllm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
     chara_looks = [] #{}
     chara_sex = []
     for achara in chara:
@@ -530,14 +530,14 @@ import requests
 
 def get_vid(chara_idx,message,sex):
     firstsen = re.search(r'(.*?)[,.?!]',message)[0]
+    voice = "en-US-GuyNeural"
     tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
                         HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
     if 'M' in tone or tone not in ['Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering','Hopeful']:
         tone = 'Default'
     if sex == 'F':
         voice = "en-US-JennyNeural"
-    else: 
-        voice = "en-US-GuyNeural"
+        
     headers = {'Authorization': 'Basic ZXVuc29vMTRAc2trdWtkcC5yZS5rcg:3fGmYrhVQKqfetoLtTf50'}
     postjson = {
     "source_url": f"https://storage.googleapis.com/watergaran/charaprofileimg{chara_idx}.jpg",
@@ -567,7 +567,7 @@ def get_vid(chara_idx,message,sex):
             result_url = getresponse['result_url'] 
             return result_url
         if status == 'error':
-            print('status error')
+            print('status error:', getresponse)
             return 'error'
 
 

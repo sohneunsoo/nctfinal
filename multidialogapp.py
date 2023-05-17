@@ -136,9 +136,9 @@ start_but = st.button('Start/Reset_conv')
 transko = st.checkbox('Translate/번역',key='trans_widget')
 
 if transko: 
-    st.text('\n'.join(st.session_state.talk_history[0]))    
+    st.write('\n'.join(st.session_state.talk_history[0]))    
 else:
-    st.text('\n'.join(st.session_state.talk_history[1]))
+    st.write('\n'.join(st.session_state.talk_history[1]))
 
 next_but = st.button('Next')
 
@@ -195,7 +195,10 @@ if next_but:
         idx = st.session_state.chara_idx[name]
         if st.button('Speak'):
             vidresult = get_vid(idx,message,st.session_state.chara_sex[idx])
-            st.video(vidresult)
+            if vidresult == 'error':
+                st.write('error- cannot produce...')
+            else:
+                st.video(vidresult)
     st.experimental_rerun()
     
 if userprompt:
