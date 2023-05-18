@@ -512,6 +512,14 @@ HumanMessage(content=f"""Is {achara} female?""")]).content
 
 # sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
 
+def action_image_gen(sdmodelpip,steps,chara_looks,movement,name):
+    sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
+    sdmodelpip = sdmodelpip.to("cuda")
+    chara_images_np = []
+    images = sdmodelpip(name+chara_looks+movement,num_inference_steps=steps)
+    chara_images_np.append(images[0][0])
+    return chara_images_np
+
 def image_gen(sdmodelpip,chara,steps,chara_looks):
     
     sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)

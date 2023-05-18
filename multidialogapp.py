@@ -137,7 +137,7 @@ imginitplace = st.empty()
 imgtemp = st.button('image')
 imageplace = st.session_state.chara_img
 if st.session_state.chara_img != '':
-    st.image(st.session_state.chara_img, width=200)  
+    st.image(st.session_state.chara_img, width=250)  
 
 
 
@@ -154,6 +154,13 @@ else:
 
 if st.session_state.name_msg[0] in st.session_state.talking_chara:
         idx = st.session_state.chara_idx[st.session_state.name_msg[0]]
+        if st.button('move'):
+            movement = re.findall(r"\*(.*?)\*",st.session_state.name_msg[1])
+            sdmodelpip = load_model()
+            st.write(st.session_state.chara_looks[idx] + ':  ' + movement[-1])
+            imagenp = action_image_gen(sdmodelpip,img_qual,st.session_state.chara_looks[idx],movement[-1],st.session_state.name_msg[0])
+            st.image(imagenp,width=250)
+            
         if st.button('Speak'):
             vidresult = get_vid(idx,st.session_state.name_msg[1],st.session_state.chara_sex[idx],st.session_state.chara_img_name[idx])
             if vidresult == 'error':
