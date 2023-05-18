@@ -264,7 +264,7 @@ def generate_character_bidding_template(character_header):
 {{message_history}}
 ```
 
-On the scale of 1 to 10, where 1 is not necessary and 10 is extremely necessary, from the following message rate how necessary for you to speak up to is to clear your suspicion of murder. Give higher number if your name is mentioned by the previous speaker. Give lower number if previous speaker is yourself.
+On the scale of 1 to 10, where 1 is not necessary and 10 is extremely necessary, from the following message rate how necessary for you to speak up to is to clear your suspicion of murder. It is more necessary if your name is mentioned by the previous speaker. It is less necessary if previous speaker is yourself.
 
 ```
 {{recent_message}}
@@ -349,6 +349,7 @@ The suspects are: {', '.join(character_names)}. One of them is a culprit"""
         'game_description':game_description,
         'character_bidding_templates': character_bidding_templates,
         'character_system_messages': character_system_messages,
+        'character_descriptions': character_descriptions,
         'character_relationships': character_relationships,
         'character_headers':character_headers,
         'culprit':culprit
@@ -394,7 +395,7 @@ def run_pipeline(character_names,dead,character_set):
     {{message_history}}
     ```
 
-    On the scale of 1 to 7, where 1 is not necessary and 10 is extremely necessary,from the following message rate how much is your envolvement necessary to determine the culprit.
+    On the scale of 1 to 7, where 1 is not necessary and 10 is extremely necessary,from the following message rate how much is your envolvement necessary to determine the culprit. If your name is mentioned in recent message, the neccessity is high.
 
     ```
     {{recent_message}}
@@ -478,21 +479,7 @@ HumanMessage(content=prompt)]
 #             chara_looks.append(result)
 #     return chara_looks    
 
-# def generate_looks_description(chara):
-    # agentllm=ChatOpenAI(temperature=0)
-    # tools= load_tools(["google-serper"], llm=agentllm)  #"serpapi"
-    # agent = initialize_agent(tools, llm,agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,verbose=True)
-
-#     chara_looks = [] #{}
-#     for achara in chara:
-#         knowchara = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply in 'YES' or 'NO'."),
-# HumanMessage(content=f"""Do you know {achara}""")]).content
-#         if "Y" in knowchara:
-#             chara_looks.append(achara)
-#         else:
-#             result = agent.run(f"Give me description of {achara}'s appearance. This will be used as prompt to create a portrait. The description should be in nouns and adjectives separated by ','.")
-#             chara_looks.append(result)
-#     return chara_looks    
+  
 
 def generate_looks_description(chara):
     agentllm=ChatOpenAI(temperature=0)
@@ -543,8 +530,7 @@ def image_gen(sdmodelpip,chara,steps,chara_looks):
         blob.upload_from_filename(filename)
         chara_images_name.append(imagename)
     return chara_images_np, chara_images_name
-    # for i in range(2):
-    #     images[0][i].save(f'./images/charaprofileimg{i}.jpg')
+
 
 from google.cloud import storage
 storage_client = storage.Client()
@@ -553,7 +539,7 @@ bucket = storage_client.bucket('watergaran')
 import requests
 
 def get_vid(chara_idx,message,sex,chara_img_name):
-    firstsen = re.search(r'(.*?)[,.?!]',message)[0]
+    firstsen = re.search(r'(.*?)[.?!]',message)[0]
     voice = "en-US-GuyNeural"
     tone = ChatOpenAI(temperature=0)([SystemMessage(content="You can only reply 'Monotone','Angry','Cheerful','Sad','Excited','Friendly','Terrified','Shouting','Unfriendly','Whispering' or 'Hopeful'. Do nothing else." ),
                         HumanMessage(content=f"""What would be an appropriate tone for first sentence in following message?:'{message}'""")]).content.replace('.','')
@@ -589,14 +575,7 @@ def get_vid(chara_idx,message,sex,chara_img_name):
         time.sleep(10)
         result = _send_getresponse(api_endpoint,id,headers)
         return result
-        # getresponse = requests.get(f'https://api.d-id.com/talks/{id}',headers=headers).json()
-        # status = getresponse['status']
-        # if status == 'done':
-        #     result_url = getresponse['result_url'] 
-        #     return result_url
-        # if status == 'error':
-        #     print('status error')
-        #     return 'error'
+
         
 def _send_getresponse(api_endpoint,id,headers):
     getresponse = requests.get(api_endpoint+id,headers=headers).json()
@@ -618,12 +597,6 @@ def _send_getresponse(api_endpoint,id,headers):
         time.sleep(10)
         return _send_getresponse(api_endpoint, id, headers)
 
-
-
-# def save_img_gcs(chara):
-#     for i in range(len(chara)):
-#         blob = bucket.blob(f'charaprofileimg{i}.jpg')
-#         blob.upload_from_filename(f'./images/charaprofileimg{i}.jpg')
 
 
 

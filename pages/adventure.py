@@ -181,7 +181,9 @@ if initialize_but:
         character_set = set_pipeline(st.session_state.talking_chara,select_victim)
         st.session_state['character_set'] = character_set
         initializeplace.text('Done')
-        st.write(st.session_state.chara_idx)  ####
+        for i in range(len(st.session_state.character_set['character_description'])):
+            st.write('{} #####{}'.format(st.session_state.character_set['character_description'][i],st.session_state.character_set['character_relationships'][i]))
+        # st.write(st.session_state.chara_idx)  ####
 
 
 if start_but:

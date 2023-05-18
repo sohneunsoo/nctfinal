@@ -15,8 +15,8 @@ os.environ["OPENAI_API_KEY"] = config.openaiapihaea
 
 
 
-if st.button('clearcache'):
-    st.cache_resource.clear()
+# if st.button('clearcache'):
+#     st.cache_resource.clear()
 
 
 #FUNCTIONS/STATES
@@ -81,9 +81,11 @@ def create_n_get_names():
 
 ######################
 ##PAGE LAYOUT
-st.title("It's open")
+st.title("Find the culprit!: Simulation of solving a murder case")
+st.title("범인을 찾아라!: 살인사건의 전말...")
 
-if st.button('load'):
+
+if st.button('reload'):
     st.experimental_rerun()
 
 userapi = st.text_input("Your OpenAI api key", type="password")
@@ -111,8 +113,23 @@ if st.button('clear characters'):
 select_victim = st.selectbox('Select Victim:',['Select Victim']+st.session_state.chara, key='select_victim_widget')
 
 
-initialize_but = st.button('Initialize')
+initialize_but = st.button('Character Initialize')
 initializeplace = st.empty()
+if initialize_but:
+    if select_victim == 'Select Victim':
+        initializeplace.warning("Please choose a victim")
+    else:
+        initializeplace.text('Searching & Creating Character Persona...')
+        st.session_state['talking_chara'] = st.session_state.chara.copy()
+        st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
+        st.session_state.chara_idx = {name:idx for idx,name in enumerate(st.session_state.talking_chara)}
+        character_set = set_pipeline(st.session_state.talking_chara,select_victim)
+        st.session_state['character_set'] = character_set
+        initializeplace.text('Done')
+        for i in range(len(st.session_state.character_set['character_descriptions'])):
+            st.write(trans('{} ###  Relationship with victim:{}'.format(st.session_state.character_set['character_descriptions'][i],st.session_state.character_set['character_relationships'][i])))
+
+
 
 img_qual = st.slider('Image Quality, Diffusion steps',0,50,10)
 imginit = st.button('image Initialize')
@@ -170,18 +187,6 @@ if stop_but:
     st.stop()
 
 
-if initialize_but:
-    if select_victim == 'Select Victim':
-        initializeplace.warning("Please choose a victim")
-    else:
-        initializeplace.text('Searching & Creating Character Persona...')
-        st.session_state['talking_chara'] = st.session_state.chara.copy()
-        st.session_state.talking_chara.remove(st.session_state.select_victim_widget)
-        st.session_state.chara_idx = {name:idx for idx,name in enumerate(st.session_state.talking_chara)}
-        character_set = set_pipeline(st.session_state.talking_chara,select_victim)
-        st.session_state['character_set'] = character_set
-        initializeplace.text('Done')
-        st.write(st.session_state.chara_idx)  ####
 
 
 if start_but:
@@ -231,7 +236,8 @@ if delete_chara != 'Choose any character to delete':
     st.experimental_rerun() 
 
 if imginit:
-    chara_looks, chara_sex = generate_looks_description(st.session_state.talking_chara)
+    with st.spinner('Getting Character looks'):
+        chara_looks, chara_sex = generate_looks_description(st.session_state.talking_chara)
     st.session_state.chara_sex = chara_sex
     st.session_state.chara_looks = chara_looks
     imageinitplace = st.write('Done') 
