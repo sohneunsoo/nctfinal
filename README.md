@@ -8,7 +8,7 @@ langchain, streamlit, etc
 -simulation 참가시킬 캐릭터 숫자 고름   
 -키워드로 캐릭터 이름 -검색 + 뽑기  
 -사용자가 캐릭터 추가  
--캐릭터 전체 삭제  
+-캐릭터 선택적/전체 삭제  
 -살인사건 피해자 지정  
 
 -initialize   
