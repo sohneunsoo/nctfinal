@@ -12,13 +12,13 @@ langchain, streamlit, etc
 -살인사건 피해자 지정  
 
 -initialize   
--> 캐릭터 패르소나 (성격) 설정 지정됨 -eg 칸예웨스트- 래퍼 스타일, donald trump 오만,부자,etc   
+-> 캐릭터 패르소나 (성격) 설정 지정됨 -eg 칸예웨스트- 래퍼 스타일/ donald trump- 오만,부자,etc   
 -> 캐릭터간의 관계성 설정 지정됨   
 -> 범인 캐릭터 지정  
 
 -image initialize   
 ->캐릭터 외형 관련 검색/지정/statement   
-->성별 (검색)  
+->성별 (AI 가 모르면 검색)  
 
 -이미지 step 숫자 설정 고름  
 -캐릭터 이미지 생성  
