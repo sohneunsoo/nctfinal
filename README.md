@@ -1,6 +1,6 @@
 # Agent Simulation을 이용한 추리 게임
 사용 library/framework:   
-langchain, streamlit
+langchain, streamlit,etc
 
 ### 구현된 기능:
 -Open AI API 재시 후 사이트 열림 (입력 가려짐)   
