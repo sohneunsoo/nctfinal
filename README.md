@@ -20,7 +20,7 @@ langchain, streamlit, etc
 ->캐릭터 외형 관련 검색/지정/statement   
 ->성별 (검색)  
 
--이미지 step 숫자 설정 고름
+-이미지 step 숫자 설정 고름  
 -캐릭터 이미지 생성  
 
 -start   
