@@ -27,7 +27,7 @@ langchain, streamlit, etc
 ->각 agent에 캐릭터 설정 인격 부여  
 ->증거 생성 (탐정 agent만 이정보를 가지고있음)  
 
--번역 (한/영)  
+-번역 (영/한) (can switch back and forth)  
 
 -캐릭터 한명의 대화 + 행동 생성   
 -사용자 대화 참여 - 영어 한국어 둘다 가능  
