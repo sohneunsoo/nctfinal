@@ -512,7 +512,7 @@ HumanMessage(content=f"""Is {achara} female?""")]).content
 
 # sdmodelpip = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1", torch_dtype=torch.float16)
 
-def action_image_gen(sdmodelpip,steps,chara_looks,movement,name):
+def action_image_gen(sdmodelpip,steps,chara_looks,movement,name): #함수화해서 아래랑 중복제거 해야함
     sdmodelpip.scheduler = DPMSolverMultistepScheduler.from_config(sdmodelpip.scheduler.config)
     sdmodelpip = sdmodelpip.to("cuda")
     chara_images_np = []
